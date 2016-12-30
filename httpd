@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+
+# License: See LICENSE
+
+set -e
+
+declare _port=8080
+declare _ip=127.0.0.1
+declare -a _query
+
+#-----------------------------------------------------------------------------
+blink1() {
+  declare -A _blink_patterns=(
+    [red_flashes]="3,#ff0000,0.5,0,#000000,0.5,"
+    [green_flashes]="3,#00ff00,0.5,0,#000000,0.5,"
+    [blue_flashes]="3,#0000ff,0.5,0,#000000,0.5,"
+    [white_flashes]="3,#ffffff,0.5,0,#000000,0.5,"
+    [yellow_flashes]="3,#ffff00,0.5,0,#000000,0.5,"
+    [purple_flashes]="3,#ff00ff,0.5,0,#000000,0.5,"
+    [groovy]="3,#ff4cff,1.0,0,#630000,0.2,0,#0000ff,0.1,0"
+    [policecar]="6,#ff0000,0.3,1,#0000ff,0.3,2,#000000,0.1,0,#ff0000,0.3,2,#0000ff,0.3,1,#000000,0.1,0"
+    [fireengine]="6,#ff0000,0.3,1,#ff0000,0.3,2,#000000,0.1,0,#ff0000,0.3,2,#ff0000,0.3,1,#000000,0.1,0"
+    [paletecolors]="3,#e7009a,1,0,#3d00e7,1,0,#00b8e7,1,0,#00e71e,1,0,#d7e700,1,0,#e70000,1,0,#e7e7e7,1,0"
+    [cmyk]="3,#00fff2,0.8,0,#000000,0.3,0,#65003c,0.8,0,#000000,0.3,0,#ffd905,0.8,0,#000000,0.1,0,#000000,0.7,0"
+    [rgb]="3,#ff0000,0.8,0,#000000,0.3,0,#00ff00,0.8,0,#000000,0.3,0,#0000ff,0.8,0,#000000,0.3,0"
+    [undervolt]="1,#821500,1,0,#634100,1,0,#554f00,1,0,#395800,1,0,#00580b,1,0,#005025,1,0,#005844,1,0,#00465a,1,0"
+    [fireshrine]="3,#751100,0,1,#ff1d00,0,2,#ff1000,0.4,1,#680300,0.4,2,#000000,0.9,1,#e01200,0,0,#000000,2,0"
+    [moltenlava]="3,#ff0000,0.2,1,#ff0000,0.2,2,#bd0000,0.1,1,#bd0000,0.1,2,#690000,0.1,1,#690000,0.1,2,#3f0000,0.2,1,#3f0000,0.2,2"
+    [lightingstorm]="3,#6f756f,0,1,#ffffff,0,2,#ffffff,0.4,1,#686868,0.4,2,#000000,0.9,1,#e0e0e0,0,0,#000000,2,0"
+    [rain]="1,#0a01ff,0.1,1,#04004f,0,1,#1701ff,0.4,2,#04004f,0,2,#0019ff,0.3,1,#04004f,0.3,1,#1b01ff,0.3,2,#04004f,0,2"
+    [nightfall]="1,#001980,1,0,#000000,10,0"
+    [dawn]="1,#000000,1,0,#ff6800,15,0"
+    [dancefloor]="6,#ff0004,0.1,1,#ff0004,0.1,2,#f2ff00,0.1,1,#f2ff00,0.1,2,#00ff37,0.1,1,#00ff2a,0.1,2,#ff00aa,0.1,1,#ff00b6,0.1,2"
+    [rave]="6,#8b8800,0,0,#010b9e,0.1,0,#009b00,0.1,0,#a5008c,0.1,0,#01998e,0.1,0,#9b0007,0.1,0,#0114a5,0.1,0,#8c8d85,0.1,0"
+    [sexy]="3,#e7009a,0.4,1,#ff007b,0,2,#ff00dc,0.4,1,#680029,0.4,2,#000000,0.9,1,#e0006c,0,0,#53004d,2,0"
+    [calmdown]="3,#00ff33,2,1,#ff00e9,2,2,#ff0004,2,1,#003fff,2,2,#faff00,2,1,#ffffff,2,1"
+    [emergency]="3,#ff7c01,0,2,#732f00,0.1,0,#ff7e00,0,1,#602700,0.3,1"
+    [lowbattery]="3,#7a0000,0.1,0,#000000,0,0,#7e0000,0.1,0,#000000,0.1,0,#000000,3,0"
+    [ekg]="5,#0c4f00,0,0,#29ff00,0,0,#0c4f00,0.1,0,#29ff00,0.1,0,#0c4f00,2.1,0"
+  )
+
+  local _command="echo blink1-tool"
+  local -a _args=(--quiet --id=all)
+  local -i _query_index=1
+
+  while [[ -n "${_query[$_query_index]}" ]] ; do
+    local _arg="${_query[$_query_index]}"
+    local _next_arg
+    let _query_index++
+
+    if [[ -n "${_query[$_query_index]}" ]] ; then
+      _next_arg="${_query[$_query_index]}"
+    fi
+
+
+
+    case "$_arg" in
+      on|white|off|red|green|blue|cyan|magenta|yellow|chase|random|glimmer)
+        _args+=("--${_arg}")
+        ;;
+      *=*)
+        local _key="${_arg%%=*}"
+        local _value="${_arg##*=}"
+
+        case "$_key" in
+          rgb)
+            if [[ "$_value" =~ ^[0-9a-f]{6}$ ]] ; then
+              _args+=("--${_key}=${_value}")
+            else
+              echo "BLINK_UNRECOGNIZED_COLOR $_key => $_value"
+            fi
+            ;;
+          random|glimmer|blink)
+            if [[ "$_value" =~ ^[0-9]{1,2}$ ]] ; then
+              _args+=("--${_key}=${_value}")
+            fi
+            ;;
+          millis|delay)
+            if [[ "$_value" =~ ^[0-9]{3,4}$ ]] ; then
+              _args+=("--${_key}=${_value}")
+            fi
+            ;;
+          *)
+            echo "BLINK_UNRECOGNIZED_ASSIGNMENT $_key => $_value"
+            ;;
+        esac
+        ;;
+
+      *)
+        local _found_pattern
+
+        for _pattern in ${!_blink_patterns[@]} ; do
+          if [[ "$_arg" == "$_pattern" ]] ; then
+            _found_pattern=ok
+            _args+=("--playpattern='${_blink_patterns[$_pattern]}'")
+          fi
+        done
+
+        if [[ -z "$_found_pattern" ]] ; then
+          echo "BLINK_UNRECOGNIZED $_arg"
+        fi
+        ;;
+    esac
+  done
+
+  # -d dNums --id all|deviceIds Use these blink(1) ids (from --list)
+
+  echo "$_command" "${_args[@]}"
+}
+
+#-----------------------------------------------------------------------------
+usage() {
+  cat <<USAGE
+Usage: ${0##*/} <command> [options] [command specific options]
+  OPTIONS:
+  -h, --help  This.
+
+  COMMANDS:
+    start     Start the HTTP server
+      -p, --port <port number>  default: 8080
+      -i, --ip <address>        default: 127.0.0.1
+
+    request   Handle an HTTP request
+
+USAGE
+}
+
+#-----------------------------------------------------------------------------
+start_server() {
+  socat TCP-LISTEN:${_port},crnl,fork EXEC:"$0 request"
+}
+
+#-----------------------------------------------------------------------------
+http_headers() {
+  local _code="$1"
+  local _text="$2"
+  printf -v _time "%(%a, %d %b %Y %H:%M:%S %Z)T" -1
+
+  echo <<-HTTP
+HTTP/1.1 $_code $_text"
+Server: nope
+Date: ${_time}
+Content-Type: text/plain
+Content-Length: 128
+Connection: close
+
+HTTP
+}
+
+#-----------------------------------------------------------------------------
+http_ok() {
+  http_headers 200 OK
+}
+
+#-----------------------------------------------------------------------------
+http_forbidden() {
+  http_headers 403 Forbidden
+}
+
+#-----------------------------------------------------------------------------
+parse_query_string() {
+  read -rs -a _query < <(echo "$1" | sed -e 's/^\/*//' -e 's/[\/\?&+]/ /g' -e 's/%20/ /g' -e 's/[^a-z0-9= ,]//g' -e 's/  */ /' -e 's/ *= */=/g')
+}
+#-----------------------------------------------------------------------------
+get() {
+  local _app="${_query[0]}"
+
+  case "$_app" in
+    blink1)
+      blink1
+      ;;
+
+    *)
+      echo "NOPE"
+      ;;
+  esac
+}
+
+#-----------------------------------------------------------------------------
+handle_request() {
+  local _query_string
+
+  while read -rs __method __query_string _version ; do
+    if [[ "${__method^^}" == "GET" ]] ; then
+      _query_string="${__query_string,,}"
+    elif [[ -z "$__method" ]] ; then
+      break
+    fi
+  done
+
+  if [[ -n "$_query_string" ]] ; then
+    parse_query_string "$_query_string"
+    http_ok
+    get
+  else
+    http_forbidden
+  fi
+}
+
+#-----------------------------------------------------------------------------
+[[ $# -eq 0 ]] && usage
+
+declare _command
+_command="$1" ; shift
+
+while [[ $# -gt 1 ]] ; do
+  curr_arg="$1" ; shift
+  if [[ $# -gt 0 ]] ; then next_arg="$1" ; shift ; else next_arg="" ; fi
+  case "$curr_arg" in
+    -h|--help|help) usage ;;
+    -p|--port) _port=$next_arg ;;
+    -i|--ip)   _ip=$next_arg ;;
+  esac
+done
+
+case "$_command" in
+  start)
+    start_server
+    ;;
+
+  request)
+    handle_request
+    ;;
+
+  *) usage ;;
+esac
+
